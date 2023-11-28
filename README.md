@@ -8,3 +8,4 @@ The team and the owner make no warranties or representations regarding the suita
 
 Analysis of the project:
 
+The project analysis has been sectioned into 5 parts mainly.
