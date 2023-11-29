@@ -88,7 +88,7 @@ result_dist <- as.data.frame(rbind(std_dist1,std_dist2,std_dist3),row.names=coln
 colnames(result_dist)<- c("sd2 to +inf "," sd1 to sd2 "," mean to sd 1 "," sd-1 to mean "," sd-2 to sd-1 "," sd2 to -inf ")
 result_dist
 
-# It can be observed from the result_dist framework that majority of the frauds occur for mean to sd2 on positive side
+# It can be observed from the result_dist framework that majority of the frauds occur for mean -1sd to mean+1sd
 # There are 2647 outliers from distance from home, 2232 from distance_from_last_transaction,, 3012 from ratio to median purchase price
 # These outliers being marked fraud makes sense in business context as well but we are interested in catching those that are majority
 
@@ -101,42 +101,21 @@ print(sprintf(" The Accuracy by Naive bias for no fraud is %g%%",100*round(sum(f
 print(sprintf(" The Accuracy by Naive bias for fraud is %g%%",100*round(sum(fraud.sc$fraud==1)/length(fraud.sc$fraud),5)))
 
 # There is definitely a very high bias based on above distribution
-
 barplot(table(fraud.sc$fraud), col=c("grey", "red"), main="Imbalance between fraud occurances", names.arg=c("0", "1"))
 text(x=1,y=900000,labels=table(fraud.sc$fraud)[1],pos=2, col="black")
 text(x=2,y=70000,labels=table(fraud.sc$fraud)[2],pos=2, col="black")
 
 
-#to assess bias in the data, will use sampling 
-#When the population can be divided into subgroups or strata that share similar characteristics. 
-#This method ensures representation from each stratum and can lead to more precise and reliable results when analyzing subgroup differences.
-
+# To assess bias in the data, will use sampling 
+# When the population can be divided into subgroups or strata that share similar characteristics. 
+# This method ensures representation from each stratum and can lead to more precise and reliable results when analyzing subgroup differences.
 install.packages("sampler")
 library(sampler)
 library(dplyr)
 
-#split the data using 
-#set.seed(12)
-# fraud.sc2 <- fraud.sc
-# fraud.stratified <- fraud.sc2 %>%
-# group_by(fraud) %>%
-# sample_n(size=50000)
-
-
-
-
-#shuffle 
-# shuffle_index <- sample(1:nrow(fraud.stratified))
-# head(shuffle_index)
-
-# fraud.stratified <- fraud.stratified[shuffle_index, ]
-# head(fraud.stratified)
-
-
 #take a 10% value to train models 
 split.index <- createDataPartition(fraud.sc$fraud, p =0.1, list = FALSE)
 fraud.sc <- fraud.sc[split.index,]
-
 prop.table(table(fraud.sc$fraud))
 
 # Creating Training Validation Split----
@@ -147,10 +126,8 @@ set.seed(12)
 split_index <- createDataPartition(fraud.sc$fraud, p =0.7, list = FALSE)
 fraud.train<-fraud.sc[split_index,]
 fraud.valid<-fraud.sc[-split_index,]
-
 table(fraud.sc$fraud)
 table(fraud.train$fraud)
-
 
 # Training data check and naive accuracy
 length(fraud.train$fraud)
@@ -166,89 +143,112 @@ print(sprintf(" Validation: Naive: Naive Accuracy FRAUD is %g%%",100*round(sum(f
 
 # Stratified sampling was success as accuracy for both train and test is equal implying that equal number of fraud cases are there in both
 
-
-#logistic regression" 
+# Logistic regression" 
 
 # Fit the model
 fraud.glm <- glm(fraud ~., data = fraud.train, family = binomial)
+
 # Summarize the model
 summary(fraud.glm)
+
 # Make predictions
 probabilities.glm <- predict(fraud.glm, newdata = fraud.valid, type = "response")
-#predicted probabilities 
+
+# Predicted probabilities 
 predicted.probs.df <- data.frame(Probability = probabilities.glm)
-#make predictions using a 0.5 threshold 
-predicted.classes.glm <- ifelse(probabilities.glm > 0.4, 1, 0)
+
+# Make predictions using a 0.25 threshold 
+predicted.classes.glm <- ifelse(probabilities.glm > 0.25, 0, 1)
+
 # Model accuracy
 accuracy.glm <- mean(predicted.classes.glm == fraud.valid$fraud)
-
 accuracy.glm
-#predicted class threshold is set at 0.4. conservative approach, classify more cases which are likely not fraud, on the safe side 
-
-library(pROC)
-
+# Predicted class threshold is set at 0.25. conservative approach, classify more cases which are likely not fraud, on the safe side 
+library(pROC) #for ROC curve
 Roc.glm = roc(fraud.valid$fraud ~ probabilities.glm, plot = TRUE, print.auc = TRUE)
-
-
 library(ggplot2)
+
 # Create a density plot or histogram
+# Alternatively, use geom_histogram() for a histogram:
+# geom_histogram(aes(y = ..density..), fill = "blue", bins = 30, alpha = 0.5) +
+
 ggplot(predicted.probs.df, aes(x = Probability)) +
   geom_density(fill = "blue", alpha = 0.5) +  # Density plot
-  # Alternatively, use geom_histogram() for a histogram:
-  # geom_histogram(aes(y = ..density..), fill = "blue", bins = 30, alpha = 0.5) +
-  
   labs(title = "Distribution of Predicted Probabilities",
        x = "Predicted Probability",
        y = "Density") 
-  #geom_vline(xintercept = 0.4, color = "red",  size = 1)
+#geom_vline(xintercept = 0.4, color = "red",  size = 1)
 
-
-
-#decision tree 
-#use unnormalized data 
+# Decision tree 
 library(rpart)
 library(rpart.plot)
 fraud.dt <- rpart(fraud~., data = fraud.train, method='class', cp = 0.0005, maxdepth=8, model = TRUE)
 prp(fraud.dt)
 
-#prune the tree
+# Prune the tree
 printcp(fraud.dt)
 plotcp(fraud.dt)
-
 prunefit<-prune(fraud.dt,cp=fraud.dt$cptable[which.min(fraud.dt$cptable[,'xerror']),'CP'])
 prp(prunefit)
-
 
 prunefit<-rpart(fraud.dt, cp=0.001)
 prp(prunefit)
 
-
-#assess accuracy 
+# Assess accuracy 
 predictions.dt <- predict(prunefit, newdata = fraud.valid, type = "class")
 confusionmatrix.dt <- confusionMatrix(as.factor(predictions.dt), as.factor(fraud.valid$fraud), positive="1")
 
-
-#random forest 
+# Random forest 
 install.packages("randomForest")
 library(randomForest)
-
 fraud.rf <- randomForest(fraud ~.,
                          data = fraud.train, ntree = 1000)
 importance(fraud.rf)           
 varImpPlot(fraud.rf)        
 prob.random <- predict(fraud.rf, fraud.valid, type= "class")
-
-pred.random <- ifelse(pred.random > 0.5, 1, 0)
-
+pred.random <- ifelse(pred.random > 0.25, 0, 1)
 confusionMatrix(as.factor(pred.random), as.factor(fraud.valid$fraud))
 
-
-
-
-
-
-
 # Imbalanced Data Models----
+library(rpart)
+library(rpart.plot)
+fraud.dt <- rpart(fraud~.,data=fraud.train,method="class")
+prp(fraud.dt,yesno=2,box.palette = "GnRd",split.border.col = c("Black"),uniform=TRUE,main="Decision Tree without Pruning")
+#detach(fraud.dt.train)
+#Check cross validation data
+fraud.dt$cptable
+fraud.dt$variable.importance
+fraud.dt.pruned<-prune(fraud.dt,cp=fraud.dt$cptable[which.min(fraud.dt$cptable[,'xerror']),'CP'])
+fraud.dt.pruned$cptable
+prp(fraud.dt.pruned,yesno=2,box.palette = "GnRd",split.border.col = c("Black"),uniform=TRUE,main="Decision Tree Pruned")
+fraud.dt.pruned$variable.importance
+rpart.rules(fraud.dt.pruned)
+
+fraud.train.pred <- predict(fraud.dt.pruned, fraud.valid,type="class")
+confusionMatrix(as.factor(fraud.train.pred),as.factor(fraud.valid$fraud))
+
+fraud.valid.pred <-predict(fraud.dt.pruned, fraud.valid)
+confusionMatrix(as.factor(fraud.valid.pred),fraud.valid$fraud,positive="1")
+
+## Next models should be random forest, xgboost, bagging 
+## use a ramdon forest: 
+
+install.packages('randomForest') 
+library(randomForest)
+
+
+bestmtry <- tuneRF(fraud.train, fraud.train$fraud,stepFactor = 1.2, improve = 0.01, trace=T, plot= T) 
+fraud.rf <- randomForest(fraud~.,data= fraud.train)
+importance(fraud.rf) 
+varImpPlot(fraud.rf)
+
+pred.random.prob <- predict(fraud.rf, newdata = fraud.valid, type= "class")
+pred.random<-ifelse(pred.random.prob>0.5,1,0)
+
+table(pred.random,fraud.valid$fraud)
+confusionMatrix(as.factor(pred.random),as.factor(fraud.valid$fraud))
+Roc.random = roc(fraud.valid$fraud ~ pred.random.prob, plot = TRUE, print.auc = TRUE)
+
 
 
 # KNN
@@ -297,48 +297,3 @@ library(rpart.plot)
 # fraud.dt.valid$ratio_to_median_purchase_price<-as.factor(fraud.dt.valid$ratio_to_median_purchase_price)
 #attach(fraud.dt.train)
 
-library(rpart)
-library(rpart.plot)
-fraud.dt <- rpart(fraud~.,data=fraud.train,method="class")
-prp(fraud.dt,yesno=2,box.palette = "GnRd",split.border.col = c("Black"),uniform=TRUE,main="Decision Tree without Pruning")
-#detach(fraud.dt.train)
-#Check cross validation data
-fraud.dt$cptable
-fraud.dt$variable.importance
-fraud.dt.pruned<-prune(fraud.dt,cp=fraud.dt$cptable[which.min(fraud.dt$cptable[,'xerror']),'CP'])
-fraud.dt.pruned$cptable
-prp(fraud.dt.pruned,yesno=2,box.palette = "GnRd",split.border.col = c("Black"),uniform=TRUE,main="Decision Tree Pruned")
-fraud.dt.pruned$variable.importance
-rpart.rules(fraud.dt.pruned)
-
-fraud.train.pred <- predict(fraud.dt.pruned, fraud.valid,type="class")
-confusionMatrix(as.factor(fraud.train.pred),as.factor(fraud.valid$fraud))
-
-fraud.valid.pred <-predict(fraud.dt.pruned, fraud.valid)
-confusionMatrix(as.factor(fraud.valid.pred),fraud.valid$fraud,positive="1")
-
-## Next models should be random forest, xgboost, bagging 
-## use a ramdon forest: 
-
-install.packages('randomForest') 
-library(randomForest)
-
-
-bestmtry <- tuneRF(fraud.train, fraud.train$fraud,stepFactor = 1.2, improve = 0.01, trace=T, plot= T) 
-fraud.rf <- randomForest(fraud~.,data= fraud.train)
-importance(fraud.rf) 
-varImpPlot(fraud.rf)
-
-pred.random.prob <- predict(fraud.rf, newdata = fraud.valid, type= "class")
-pred.random<-ifelse(pred.random.prob>0.5,1,0)
-
-table(pred.random,fraud.valid$fraud)
-confusionMatrix(as.factor(pred.random),as.factor(fraud.valid$fraud))
-Roc.random = roc(fraud.valid$fraud ~ pred.random.prob, plot = TRUE, print.auc = TRUE)
-
-
-
-
-
- # Post completion of these in case accuracy is still low, we should run a SMOTE to maximise number of fraud cases
-# minimise number of non fraud cases to create a more balanced dataset and run all the models again
