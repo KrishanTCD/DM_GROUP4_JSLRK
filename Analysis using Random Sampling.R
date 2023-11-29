@@ -1,5 +1,3 @@
-
-
 #use random sample of data taking 10% of the arguments = 10 000 
 library(dplyr)
 
