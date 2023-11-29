@@ -1,40 +1,10 @@
-
-# Function to check and install packages
-# The function is defined to check and correctly install DMwR for SMOTE in R
-# Since the DMwR package is not available on CRAN, we require the following function
-# to run SMOTE(Synthetic Minority Oversampling Technique)
-
-check_and_install_package <- function(package_name, install_function) {
-  if (!requireNamespace(package_name, quietly = TRUE)) {
-    cat(paste("Installing", package_name, "...\n"))
-    install_function(package_name)
-  } else {
-    cat(paste(package_name, "is already installed.\n"))
-  }
-}
-
-# Check and install remotes package
-check_and_install_package("remotes", install.packages)
-
-# remotes is invoked here as the install_github function is required for the 
-# DMwR package install, for using SMOTE, more on imbalanced data set: 
-# https://www.kaggle.com/code/marcinrutecki/best-techniques-and-metrics-for-imbalanced-dataset
-library(remotes)
-
-# Check and install DMwR package using remotes::install_github
-check_and_install_package("DMwR", remotes::install_github(""))
-
-install.packages('DMwR')
-
-
 # Load the installed packages
-library(DMwR)
 library(forecast)
 library(readr)
 library(ggplot2)
 library(fpp2)
 library(caret)
-fraud.og <-read_csv("/Users/sarahraubenheimer/Downloads/card_transdata.csv")
+fraud.og <-read_csv("../card_transdata.csv")
 
 # Exploration of dataset----
 # Checking for size of the dataset
