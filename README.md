@@ -13,20 +13,21 @@ The main purpose of the project is to analyze card fraud for a finanical institu
 The following variables are provided along with description:
 
 # Numeric
-# distance_from_home: The distance from customers home to location of last transaction
-# distance_from_last_transaction: Distance from last transaction to the last transaction
-# These check are case the card is stolen and is being used in some other state.
+distance_from_home: The distance from customers home to location of last transaction
 
-# ratio_to_median_purchase_price: Ratio of purchased price transaction to median purchase price.
-# Check in case user is suddenly doing a higher purchase than normal trend of the user.
+distance_from_last_transaction: Distance from last transaction to the last transaction
+These check are case the card is stolen and is being used in some other state.
 
-# repeat_retailer: If the fraud occurred is it from same origin of purchase or seller.
+ratio_to_median_purchase_price: Ratio of purchased price transaction to median purchase price.
+Check in case user is suddenly doing a higher purchase than normal trend of the user.
+
+repeat_retailer: If the fraud occurred is it from same origin of purchase or seller.
 
 # Binary
-# used_chip: Chip implies if it was a credit card transaction.
-# used_pin_number: Checking if the user pin was to see if the user pin was compromised.
-# online_order: Major frauds occur online and as a result online fraud check is there
-# fraud: Flag for fraudulent model yes or no
+used_chip: Chip implies if it was a credit card transaction.
+used_pin_number: Checking if the user pin was to see if the user pin was compromised.
+online_order: Major frauds occur online and as a result online fraud check is there
+fraud: Flag for fraudulent model yes or no
 
 This is a case of classical binary classification problem.
 
