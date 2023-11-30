@@ -4,7 +4,7 @@ library(readr)
 library(ggplot2)
 library(fpp2)
 library(caret)
-fraud.og <-read_csv("../card_transdata.csv")
+fraud.og <-read_csv("card_transdata.csv")
 
 # Exploration of dataset----
 # Checking for size of the dataset
@@ -157,13 +157,15 @@ probabilities.glm <- predict(fraud.glm, newdata = fraud.valid, type = "response"
 # Predicted probabilities 
 predicted.probs.df <- data.frame(Probability = probabilities.glm)
 
-# Make predictions using a 0.25 threshold 
-predicted.classes.glm <- ifelse(probabilities.glm > 0.25, 0, 1)
+# Make predictions using a 0.5 threshold 
+predicted.classes.glm <- ifelse(probabilities.glm > 0.5, 1, 0)
 
 # Model accuracy
 accuracy.glm <- mean(predicted.classes.glm == fraud.valid$fraud)
 accuracy.glm
-# Predicted class threshold is set at 0.25. conservative approach, classify more cases which are likely not fraud, on the safe side 
+confusionMatrix(as.factor(predicted.classes.glm),as.factor(fraud.valid$fraud))
+
+# Predicted class threshold is set at 0.5. conservative approach, classify more cases which are likely not fraud, on the safe side 
 library(pROC) #for ROC curve
 Roc.glm = roc(fraud.valid$fraud ~ probabilities.glm, plot = TRUE, print.auc = TRUE)
 library(ggplot2)
@@ -191,13 +193,13 @@ plotcp(fraud.dt)
 prunefit<-prune(fraud.dt,cp=fraud.dt$cptable[which.min(fraud.dt$cptable[,'xerror']),'CP'])
 prp(prunefit)
 
-prunefit<-rpart(fraud.dt, cp=0.001)
-prp(prunefit)
+# prunefit<-rpart(fraud.dt, cp=0.001)
+# prp(prunefit)
 
 # Assess accuracy 
 predictions.dt <- predict(prunefit, newdata = fraud.valid, type = "class")
 confusionmatrix.dt <- confusionMatrix(as.factor(predictions.dt), as.factor(fraud.valid$fraud), positive="1")
-
+confusionmatrix.dt
 # Random forest 
 install.packages("randomForest")
 library(randomForest)
@@ -206,7 +208,7 @@ fraud.rf <- randomForest(fraud ~.,
 importance(fraud.rf)           
 varImpPlot(fraud.rf)        
 prob.random <- predict(fraud.rf, fraud.valid, type= "class")
-pred.random <- ifelse(pred.random > 0.25, 0, 1)
+pred.random <- ifelse(prob.random > 0.5, 1, 0)
 confusionMatrix(as.factor(pred.random), as.factor(fraud.valid$fraud))
 
 # Imbalanced Data Models----
@@ -284,8 +286,8 @@ Roc.random = roc(fraud.valid$fraud ~ pred.random.prob, plot = TRUE, print.auc = 
 # knn.pred <- knn(fraud.knn.train[,1:7], fraud.knn.test[,1:7],cl = fraud.knn.train[,8], k = i)
 
 # Decision Tree
-library(rpart)
-library(rpart.plot)
+# library(rpart)
+# library(rpart.plot)
 # fraud.dt.train<-fraud.train
 # fraud.dt.train$distance_from_home<-as.factor(fraud.dt.train$distance_from_home)
 # fraud.dt.train$distance_from_last_transaction<-as.factor(fraud.dt.train$distance_from_last_transaction)

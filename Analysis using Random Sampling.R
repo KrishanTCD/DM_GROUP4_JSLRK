@@ -1,6 +1,6 @@
 #use random sample of data taking 10% of the arguments = 10 000 
 library(dplyr)
-fraud.og <-read_csv("../card_transdata.csv")
+fraud.og <-read_csv("card_transdata.csv")
 set.seed(123)  
 shuffle_index <- sample(1:nrow(fraud.og))
 head(shuffle_index)
@@ -35,14 +35,14 @@ probabilities.glm <- predict(fraud.glm, newdata = fraud.valid, type = "response"
 #predicted probabilities 
 predicted.probs.df <- data.frame(Probability = probabilities.glm)
 
-# make predictions using a 0.25 threshold 
-predicted.classes.glm <- ifelse(probabilities.glm > 0.25, 0, 1)
+# make predictions using a 0.5 threshold 
+predicted.classes.glm <- ifelse(probabilities.glm > 0.5, 1, 0)
 
 # Model accuracy
 accuracy.glm <- mean(predicted.classes.glm == fraud.valid$fraud)
 accuracy.glm
 
-# Predicted class threshold is set at 0.25. conservative approach, classify more cases which are likely not fraud, on the safe side 
+# Predicted class threshold is set at 0.5. conservative approach, classify more cases which are likely not fraud, on the safe side 
 # regresion model gets accuracy of 0.95645
 library(pROC) # For ROC plot
 
@@ -101,7 +101,7 @@ importance(fraud.rf)
 varImpPlot(fraud.rf)
 
 pred.random.prob <- predict(fraud.rf, newdata = fraud.valid, type= "class")
-pred.random<-ifelse(pred.random.prob>0.25,0,1)
+pred.random<-ifelse(pred.random.prob>0.5,1,0)
 
 table(pred.random,fraud.valid$fraud)
 confusionMatrix(as.factor(pred.random),as.factor(fraud.valid$fraud))
@@ -121,7 +121,7 @@ fraud.boost<- gbm(fraud ~ . , distribution = "bernoulli",
 
 summary(fraud.boost)
 pred.boost.probability<-predict(fraud.boost,newdata=fraud.valid,n.trees=5000,type="response")
-pred.boost<-ifelse(pred.boost.probability>0.25,0,1)
+pred.boost<-ifelse(pred.boost.probability>0.5,1,0)
 
 table(pred.boost,fraud.valid$fraud)
 confusionMatrix(as.factor(pred.boost),as.factor(fraud.valid$fraud))

@@ -114,7 +114,7 @@ importance(fraud.rf.smote)
 varImpPlot(fraud.rf.smote)
 
 pred.random.smote <- predict(fraud.rf.smote, newdata = fraud.smote.train2, type= "class")
-pred.random.smote<-ifelse(pred.random>0.25,0,1)
+pred.random.smote<-ifelse(pred.random>0.5,1,0)
 
 # Confusion Matrix
 table(pred.random.smote,fraud.smote.train2$fraud)
@@ -122,7 +122,7 @@ confusionMatrix(as.factor(pred.random.smote),as.factor(fraud.sc.test2$fraud))
 
 # With untouched data
 pred.random.smote2 <- predict(fraud.rf.smote, newdata = fraud.valid, type= "class")
-pred.random.smote2<-ifelse(pred.random.smote2>0.25,0,1)
+pred.random.smote2<-ifelse(pred.random.smote2>0.5,1,0)
 table(pred.random.smote2,fraud.valid$fraud)
 confusionMatrix(as.factor(pred.random.smote2),as.factor(fraud.valid$fraud))
 
@@ -138,14 +138,14 @@ probabilities.glm.smote <- predict(fraud.glm.smote, newdata = fraud.smote.train2
 # Predicted probabilities 
 predicted.probs.df.smote <- data.frame(Probability = probabilities.glm.smote)
 
-# Make predictions using a 0.25 threshold 
-predicted.classes.glm.smote <- ifelse(probabilities.glm.smote > 0.25, 0, 1)
+# Make predictions using a 0.5 threshold 
+predicted.classes.glm.smote <- ifelse(probabilities.glm.smote > 0.5, 1, 0)
 
 # Model accuracy
 accuracy.glm.smote <- mean(predicted.classes.glm.smote == fraud.smote.train2$fraud)
 accuracy.glm
 
-#predicted class threshold is set at 0.25. conservative approach, classify more cases which are likely not fraud, on the safe side 
+#predicted class threshold is set at 0.5. conservative approach, classify more cases which are likely not fraud, on the safe side 
 table(predicted.classes.glm.smote,fraud.smote.train2$fraud)
 confusionMatrix(as.factor(predicted.classes.glm.smote),as.factor(fraud.smote.train2$fraud))
 
@@ -162,7 +162,7 @@ predicted.classes.glm.smote2 <- ifelse(probabilities.glm.smote > 0.5, 1, 0)
 accuracy.glm.smote2 <- mean(predicted.classes.glm.smote2 == fraud.valid$fraud)
 accuracy.glm
 
-# Predicted class threshold is set at 0.4. conservative approach, classify more cases which are likely not fraud, on the safe side 
+# Predicted class threshold is set at 0.5. conservative approach, classify more cases which are likely not fraud, on the safe side 
 table(predicted.classes.glm.smote2,fraud.valid$fraud)
 confusionMatrix(as.factor(predicted.classes.glm.smote2),as.factor(fraud.valid$fraud))
 
